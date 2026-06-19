@@ -27,6 +27,7 @@ class CropUpdate(BaseModel):
     harvest_date: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
     status: Optional[str] = None  # active | sold | expired
+    images: Optional[list[str]] = None
 
 
 class CropOut(BaseModel):

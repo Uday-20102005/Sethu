@@ -17,7 +17,7 @@ function formatMsgTime(iso) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const socket = useSocket();
+  const { socket } = useSocket();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();

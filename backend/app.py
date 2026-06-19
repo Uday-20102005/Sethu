@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import socketio
 from contextlib import asynccontextmanager
 
@@ -39,6 +41,11 @@ fastapi_app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 @fastapi_app.get("/")
 async def root():
     return {"message": "AgriMarket API is running"}
+
+# Serve uploaded files
+uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+fastapi_app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Mount Socket.IO
 app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app)

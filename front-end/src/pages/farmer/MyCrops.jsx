@@ -32,6 +32,7 @@ export default function MyCrops() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [uploading, setUploading] = useState(false);
   const toast = useToast();
 
   const load = async () => {
@@ -68,6 +69,24 @@ export default function MyCrops() {
   };
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) { toast.error("Only JPG, PNG, and WEBP images are allowed"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    setUploading(true);
+    try {
+      const res = await farmerApi.uploadImage(file);
+      setForm(f => ({ ...f, images: [...(f.images || []), res.data.url] }));
+    } catch { toast.error("Failed to upload image"); }
+    finally { setUploading(false); }
+  };
+
+  const removeImage = (index) => {
+    setForm(f => ({ ...f, images: (f.images || []).filter((_, i) => i !== index) }));
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -198,9 +217,13 @@ export default function MyCrops() {
                 <tr key={crop.id} className="table-row animate-fade-in" style={{ animationDelay: `${i * 40}ms` }}>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
-                        <Sprout size={15} className="text-green-600" />
-                      </div>
+                      {crop.images?.[0] ? (
+                        <img src={crop.images[0]} alt="" className="w-9 h-9 rounded-xl object-cover" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
+                          <Sprout size={15} className="text-green-600" />
+                        </div>
+                      )}
                       <div>
                         <p className="font-semibold text-slate-800">{crop.name}</p>
                         {crop.description && <p className="text-xs text-slate-400 truncate max-w-32">{crop.description}</p>}
@@ -286,6 +309,28 @@ export default function MyCrops() {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
             <textarea value={form.description} onChange={set("description")} rows={2} placeholder="Quality details, growing method, certifications..." className="input-field resize-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Images</label>
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer btn btn-secondary text-sm">
+                {uploading ? "Uploading..." : "Choose Image"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+              </label>
+              {form.images?.length > 0 && <span className="text-xs text-slate-500">{form.images.length} image(s) selected</span>}
+            </div>
+            {form.images?.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {form.images.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeImage(i)} className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition">
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           {editCrop && (
             <div>

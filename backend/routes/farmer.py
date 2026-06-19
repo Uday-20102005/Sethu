@@ -1,6 +1,6 @@
-import uuid
+import uuid, os, shutil
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from models.crop import CropCreate, CropUpdate, CropOut
 from models.request import RequirementResponseCreate
 from utils.decorators import require_farmer
@@ -204,3 +204,30 @@ async def get_my_responses(current_user: dict = Depends(require_farmer)):
         .execute()
     )
     return [r["requirement_id"] for r in (result.data or [])]
+
+
+# ── Upload Crop Image ─────────────────────────────────────
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "crops")
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+@router.post("/upload-image", status_code=status.HTTP_201_CREATED)
+async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(require_farmer)):
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPG, PNG, WEBP")
+
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
+    filename = f"{uuid.uuid4()}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    url = f"/uploads/crops/{filename}"
+    return {"url": url}

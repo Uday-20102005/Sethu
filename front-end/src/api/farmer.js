@@ -13,4 +13,12 @@ export const farmerApi = {
   getBuyerRequirements: () => client.get("/farmer/buyer-requirements"),
   respondToRequirement: (data) => client.post("/farmer/requirement-response", data),
   getMyResponses: () => client.get("/farmer/my-responses"),
+
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return client.post("/farmer/upload-image", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
